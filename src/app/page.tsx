@@ -14,10 +14,15 @@ interface ApiResponse {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+// 1. Create a union of filterable keys (all are arrays)
+const filterableKeys = ["numbers", "alphabets", "highest_alphabet"] as const;
+type FilterableKey = typeof filterableKeys[number];
+
 export default function Home() {
   const [input, setInput] = useState("");
+  // 2. selectedFilters can only be these keys
+  const [selectedFilters, setSelectedFilters] = useState<FilterableKey[]>([]);
   const [response, setResponse] = useState<ApiResponse | null>(null);
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [error, setError] = useState("");
 
   const handleSubmit = async () => {
@@ -31,27 +36,28 @@ export default function Home() {
     }
   };
 
-  const toggleFilter = (filter: string) => {
+  const toggleFilter = (filter: FilterableKey) => {
     setSelectedFilters((prev) =>
-      prev.includes(filter) ? prev.filter((f) => f !== filter) : [...prev, filter]
+      prev.includes(filter)
+        ? prev.filter((f) => f !== filter)
+        : [...prev, filter]
     );
   };
 
   const renderFilteredResponse = () => {
     if (!response) return null;
 
-    const filteredData = selectedFilters.reduce((acc: Partial<ApiResponse>, key) => {
-      if (key in response) {
-        acc[key as keyof ApiResponse] = response[key as keyof ApiResponse];
-      }
+    // 3. Only copy array fields from the response
+    const filteredData = selectedFilters.reduce((acc, key) => {
+      acc[key] = response[key];
       return acc;
-    }, {} as Partial<ApiResponse>);
+    }, {} as Partial<Pick<ApiResponse, FilterableKey>>);
 
     return (
       <div>
         {Object.entries(filteredData).map(([key, value]) => (
           <div key={key}>
-            <strong>{key}:</strong> {Array.isArray(value) ? value.join(", ") : value}
+            <strong>{key}:</strong> {value?.join(", ")}
           </div>
         ))}
       </div>
@@ -81,7 +87,7 @@ export default function Home() {
         <div>
           <label className="block text-sm font-medium mb-2">Multi Filter</label>
           <div className="flex space-x-4 mb-4">
-            {["numbers", "alphabets", "highest_alphabet"].map((filter) => (
+            {filterableKeys.map((filter) => (
               <div key={filter} className="flex items-center">
                 <input
                   type="checkbox"
@@ -97,9 +103,15 @@ export default function Home() {
 
           <div className="flex flex-wrap gap-2 mb-4">
             {selectedFilters.map((filter) => (
-              <div key={filter} className="flex items-center bg-gray-200 px-3 py-1 rounded-full text-sm">
+              <div
+                key={filter}
+                className="flex items-center bg-gray-200 px-3 py-1 rounded-full text-sm"
+              >
                 <span>{filter}</span>
-                <button onClick={() => toggleFilter(filter)} className="ml-2 text-red-500 hover:text-red-700">
+                <button
+                  onClick={() => toggleFilter(filter)}
+                  className="ml-2 text-red-500 hover:text-red-700"
+                >
                   x
                 </button>
               </div>
