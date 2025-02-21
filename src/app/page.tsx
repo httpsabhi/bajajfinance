@@ -14,25 +14,27 @@ interface ApiResponse {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// 1. Create a union of filterable keys (all are arrays)
 const filterableKeys = ["numbers", "alphabets", "highest_alphabet"] as const;
 type FilterableKey = typeof filterableKeys[number];
 
 export default function Home() {
   const [input, setInput] = useState("");
-  // 2. selectedFilters can only be these keys
   const [selectedFilters, setSelectedFilters] = useState<FilterableKey[]>([]);
   const [response, setResponse] = useState<ApiResponse | null>(null);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async () => {
     try {
+      setIsLoading(true); 
       const parsedInput = JSON.parse(input);
       const { data } = await axios.post<ApiResponse>(`${API_URL}/bfhl`, parsedInput);
       setResponse(data);
       setError("");
     } catch {
       setError("Invalid JSON input");
+    } finally {
+      setIsLoading(false); 
     }
   };
 
@@ -47,7 +49,6 @@ export default function Home() {
   const renderFilteredResponse = () => {
     if (!response) return null;
 
-    // 3. Only copy array fields from the response
     const filteredData = selectedFilters.reduce((acc, key) => {
       acc[key] = response[key];
       return acc;
@@ -78,8 +79,16 @@ export default function Home() {
         placeholder="Enter JSON input"
         className="w-full p-2 border border-gray-300 rounded mb-4"
       />
-      <button onClick={handleSubmit} className="bg-blue-500 text-white px-4 py-2 rounded mb-4 w-full">
-        Submit
+      <button
+        onClick={handleSubmit}
+        disabled={isLoading} // 6. Disable button when loading
+        className="bg-blue-500 text-white px-4 py-2 rounded mb-4 w-full flex items-center justify-center"
+      >
+        {isLoading ? (
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+        ) : (
+          "Submit"
+        )}
       </button>
       {error && <p className="text-red-500">{error}</p>}
 
