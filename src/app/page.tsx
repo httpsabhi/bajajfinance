@@ -40,8 +40,10 @@ export default function Home() {
   const renderFilteredResponse = () => {
     if (!response) return null;
 
-    const filteredData = selectedFilters.reduce((acc, key) => {
-      acc[key as keyof ApiResponse] = response[key as keyof ApiResponse];
+    const filteredData = selectedFilters.reduce((acc: Partial<ApiResponse>, key) => {
+      if (key in response) {
+        acc[key as keyof ApiResponse] = response[key as keyof ApiResponse];
+      }
       return acc;
     }, {} as Partial<ApiResponse>);
 
